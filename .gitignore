@@ -1,0 +1,53 @@
+# ============================================================
+# 北京二手房行情洞察系统 · .gitignore
+# 原则：只提交"源码 + 文档 + 可复现所需的最小数据"，
+#      其余（虚拟环境、依赖、数据库二进制、临时文件）一律不入库
+# ============================================================
+
+# ---------- Python ----------
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pylibs/
+
+# ---------- Node / 前端 ----------
+node_modules/
+dist/
+dist-ssr/
+.vite/
+.npm-cache/
+*.local
+
+# ---------- 数据库（可由 run-etl.cmd --db 重建）----------
+data/app.db
+data/app.db-wal
+data/app.db-shm
+data/.smoke.db
+data/.smoke.db-wal
+data/.smoke.db-shm
+data/.bench.db
+data/.bench.db-wal
+data/.bench.db-shm
+data/uploads/
+
+# ---------- 临时与缓存 ----------
+.tmp/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- 环境与密钥（绝不入库）----------
+.env
+.env.local
+*.pem
+*.key

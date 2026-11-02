@@ -1,0 +1,40 @@
+{
+  "generated_at_utc": "2026-11-02T06:58:08+00:00",
+  "rules_version": "1.0.0",
+  "input": {
+    "file": "最新发布的北京二手房数据_预处理.xlsx",
+    "md5": "b01349e3d95dc6447b65236cf3ee73b1",
+    "raw_rows": 2890,
+    "raw_cols": 53
+  },
+  "runtime": {
+    "python": "3.14.4",
+    "pandas": "3.0.6",
+    "numpy": "2.5.4"
+  },
+  "row_funnel": {
+    "raw": 2890,
+    "loaded": 2890,
+    "rejected": 0
+  },
+  "outputs": {
+    "rows": {
+      "cleaned_house.csv": 2890,
+      "cleaned_orientation.csv": 4806,
+      "dim_district.csv": 17,
+      "dim_street.csv": 264,
+      "dim_community.csv": 1865,
+      "data_quality_issue.csv": 113
+    },
+    "md5": {
+      "cleaned_house.csv": "a53ecd6aa3b88503c010f944fdfcc709",
+      "cleaned_orientation.csv": "f5edd0247113378652e55d7057b94779",
+      "dim_district.csv": "a424673cee0625006cec6395487aaa2d",
+      "dim_street.csv": "c9173693e7a1e9cf2e467d4de26fdc54",
+      "dim_community.csv": "3658b62467b31ecdf9ad2fe7d6dd6436",
+      "data_quality_issue.csv": "14843d99c591e655736b94b8489654d6"
+    }
+  },
+  "assertions_passed": true,
+  "assertions_failed": []
+}

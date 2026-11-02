@@ -1,0 +1,31 @@
+# 统一换行符：仓库内一律 LF，Windows 批处理保持 CRLF
+* text=auto eol=lf
+
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# 二进制文件不做换行转换
+*.xlsx binary
+*.xls  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.woff binary
+*.woff2 binary
+*.docx binary
+*.pdf  binary
+*.db   binary
+
+# 生成物差异不显示（避免 diff 噪音）
+data/cleaned_house.csv linguist-generated=true
+data/cleaned_orientation.csv linguist-generated=true
+db/schema.sql linguist-generated=true
+db/schema_sqlite.sql linguist-generated=true
+db/schema.dbml linguist-generated=true
+docs/05-ER.md linguist-generated=true
+docs/05-列映射表.md linguist-generated=true
+docs/04-原型说明.md linguist-generated=true
+docs/08-质量报告.md linguist-generated=true
+prototype/p*.html linguist-generated=true

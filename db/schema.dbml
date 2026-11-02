@@ -1,0 +1,203 @@
+// 北京二手房行情洞察系统 · DBML（粘贴到 dbdiagram.io 可直接出图）
+// 本文件由 db/gen_schema.py 生成，请勿手工修改。
+
+Table district as "行政区" [note: '行政区（17 行，含亦庄开发区）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  name varchar(32) [not null, note: '区名，唯一；取原始“所在区”原文']
+  house_count int [not null, note: '在售套数（聚合快照，ETL 批次刷新）']
+  avg_unit_price decimal(10,2) [note: '区均价 元/㎡（算术均值）']
+  median_unit_price decimal(10,2) [note: '区中位单价 元/㎡']
+  median_total_price decimal(10,2) [note: '区中位总价 万元']
+  avg_area decimal(8,2) [note: '区平均面积 ㎡']
+  avg_age decimal(5,2) [note: '区平均房龄 年']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (name) [unique, name: 'uk_district_name'] }
+}
+
+Table street as "街道/镇" [note: '街道/镇（264 行；街道名去重仅 237，故必须与区联合唯一）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  district_id bigint [not null, note: '所属区 id']
+  name varchar(64) [not null, note: '街道名，取原始“所在街道或镇”原文']
+  is_pseudo tinyint [not null, note: '伪街道标记：1=“XX其他”聚合桶，共 16 个组合/107 行']
+  house_count int [not null, note: '在售套数（聚合快照）']
+  avg_unit_price decimal(10,2) [note: '街道均价 元/㎡（聚合快照）']
+  median_total_price decimal(10,2) [note: '街道中位总价 万元（聚合快照）']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (district_id, name) [unique, name: 'uk_street_district_name'] }
+  indexes { (district_id) [name: 'idx_street_district'] }
+}
+
+Table community as "小区" [note: '小区（1865 行；小区名去重 1864，绿地中央广场跨昌平/通州）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  district_id bigint [not null, note: '所属区 id']
+  street_id bigint [not null, note: '所属街道 id（同小区多街道时取众数）']
+  name varchar(128) [not null, note: '小区名，已去除尾随空格']
+  house_count int [not null, note: '在售套数（聚合快照，中位 1、最大 12）']
+  avg_unit_price decimal(10,2) [note: '小区均价 元/㎡（聚合快照）']
+  median_total_price decimal(10,2) [note: '小区中位总价 万元（聚合快照）']
+  avg_area decimal(8,2) [note: '小区平均面积 ㎡']
+  avg_age decimal(5,2) [note: '小区平均房龄 年']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (district_id, name) [unique, name: 'uk_community_district_name'] }
+  indexes { (street_id) [name: 'idx_community_street'] }
+  indexes { (name) [name: 'idx_community_name'] }
+}
+
+Table import_batch as "导入批次" [note: '导入批次（每次 Excel 导入一行，支撑质量报告与审计）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  file_name varchar(255) [not null, note: '原始文件名']
+  file_md5 char(32) [not null, note: '文件 MD5，用于识别重复导入']
+  total_rows int [not null, note: '原始行数']
+  loaded_rows int [not null, note: '入库行数']
+  rejected_rows int [not null, note: '拒收行数']
+  status enum('pending','running','success','partial','failed') [not null, note: '批次状态']
+  operator_id bigint [note: '操作人（管理员）id']
+  duration_ms int [note: '耗时毫秒']
+  note varchar(500) [note: '备注/失败原因']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (created_at) [name: 'idx_batch_created'] }
+}
+
+Table house as "房源" [note: '房源主表（2890 行；district/street/community 三列为反范式冗余）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  district_id bigint [not null, note: '区 id（冗余，换查询性能）']
+  street_id bigint [not null, note: '街道 id（冗余）']
+  community_id bigint [not null, note: '小区 id（冗余）']
+  batch_id bigint [note: '导入批次 id；seed 数据为空']
+  source_row_no int [not null, note: '源文件数据行号（1 基，不含表头），用于全链路回溯']
+  room tinyint [not null, note: '室（1–12）']
+  hall tinyint [not null, note: '厅（0–4）；厅=0 为开间，合法，共 101 条']
+  area decimal(8,2) [not null, note: '建筑面积 ㎡（16.07–747.23）']
+  total_price decimal(10,2) [not null, note: '挂牌总价 万元（36–8000）']
+  unit_price decimal(10,2) [not null, note: '挂牌单价 元/㎡（12742–179843）；与总价/面积误差 ≤1 元']
+  floor_level enum('低','中','高','顶层','底层','地下','上叠','未知') [not null, note: '解析后楼层层级；缺层级（纯数字）记为“未知”']
+  floor_total tinyint [note: '总层数；解析失败为 NULL']
+  floor_raw varchar(32) [note: '楼层原文，保留以便回溯']
+  orientation_text varchar(32) [note: '朝向标准化原文（固定顺序，空格分隔）；明细见 house_orientation']
+  decoration enum('毛坯','简装','精装','其他') [note: '装修：精装1313/简装970/其他549/毛坯58']
+  structure enum('板楼','塔楼','板塔结合','独栋别墅','平房') [note: '建筑结构：板楼1806/塔楼629/板塔结合453/独栋1/平房1']
+  house_age tinyint [note: '房龄 年（3–50，以 2024 为基准年）']
+  near_subway tinyint [not null, note: '是否近地铁（1=近，1308 条）；由“房源标签”归并而来']
+  is_outlier tinyint [not null, note: '极值标记（P0.5–P99.5 三指标并集，72 行）；只标记不删除']
+  abnormal_layout tinyint [not null, note: '非常规户型标记（1室2厅，12 条）；保留不清洗']
+  is_deleted tinyint [not null, note: '软删除标记']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (batch_id, source_row_no) [unique, name: 'uk_house_batch_row'] }
+  indexes { (district_id, unit_price) [name: 'idx_house_district_unit'] }
+  indexes { (district_id, street_id, unit_price) [name: 'idx_house_district_street_unit'] }
+  indexes { (community_id, unit_price) [name: 'idx_house_community_unit'] }
+  indexes { (total_price, area) [name: 'idx_house_price_filter'] }
+  indexes { (house_age) [name: 'idx_house_age'] }
+  indexes { (decoration) [name: 'idx_house_decoration'] }
+  indexes { (is_outlier) [name: 'idx_house_is_outlier'] }
+}
+
+Table house_orientation as "房源-朝向" [note: '房源-朝向关联表（4806 行）：朝向是“南 北”式多值，必须拆 M:N'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  house_id bigint [not null, note: '房源 id']
+  direction enum('东','南','西','北','东北','东南','西南','西北') [not null, note: '标准方向；南1976/北1624/东368/西363/西南160/东南159/西北84/东北72']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (house_id, direction) [unique, name: 'uk_orientation_house_direction'] }
+  indexes { (direction, house_id) [name: 'idx_orientation_direction'] }
+}
+
+Table data_quality_issue as "数据质量问题" [note: '数据质量问题留痕（ETL 的问题台账直接落这张表）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  batch_id bigint [note: '所属批次 id']
+  rule_code varchar(8) [not null, note: '规则编号 R1–R12']
+  row_no int [note: '源文件行号']
+  field_name varchar(64) [note: '涉及字段']
+  issue_type varchar(64) [not null, note: '问题类型，如 trailing_space / outlier_high / bucket_mismatch']
+  raw_value varchar(255) [note: '原值']
+  fixed_value varchar(255) [note: '修正值']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (batch_id) [name: 'idx_issue_batch'] }
+  indexes { (rule_code) [name: 'idx_issue_rule'] }
+}
+
+Table role as "角色" [note: '角色（访客/注册用户/管理员）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  code varchar(32) [not null, note: '角色编码：visitor/user/admin']
+  name varchar(32) [not null, note: '角色名称']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (code) [unique, name: 'uk_role_code'] }
+}
+
+Table app_user as "用户" [note: '用户（密码用 PBKDF2-HMAC-SHA256，非明文、非 MD5）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  username varchar(64) [not null, note: '登录名']
+  password_hash varchar(255) [not null, note: '格式 salt$pbkdf2_sha256$迭代数$摘要']
+  role_id bigint [not null, note: '角色 id']
+  status tinyint [not null, note: '1=启用 0=禁用']
+  fail_count tinyint [not null, note: '连续登录失败次数（5 次锁定）']
+  lock_until datetime [note: '锁定到期时间']
+  last_login_at datetime [note: '最后登录时间']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (username) [unique, name: 'uk_user_username'] }
+  indexes { (role_id) [name: 'idx_user_role'] }
+}
+
+Table favorite as "收藏" [note: '收藏（用户 × 房源 M:N 拆解，联合唯一保证幂等）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  user_id bigint [not null, note: '用户 id']
+  house_id bigint [not null, note: '房源 id']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (user_id, house_id) [unique, name: 'uk_favorite_user_house'] }
+  indexes { (house_id) [name: 'idx_favorite_house'] }
+}
+
+Table operation_log as "操作日志" [note: '操作审计日志'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  user_id bigint [note: '操作人；匿名操作留空']
+  action varchar(64) [not null, note: '动作：login/import/favorite/delete…']
+  target_type varchar(32) [note: '对象类型：house/batch/user']
+  target_id varchar(64) [note: '对象 id']
+  ip varchar(45) [note: '客户端 IP（兼容 IPv6）']
+  result varchar(16) [not null, note: 'ok / fail']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (user_id, created_at) [name: 'idx_oplog_user_time'] }
+}
+
+Table valuation_record as "估价记录" [note: '估价留痕（相似房源加权均价法的每次调用）'] {
+  id bigint [pk, increment, not null, note: '主键，自增']
+  user_id bigint [note: '调用人']
+  input_json json [not null, note: '入参：区/街道/面积/室/厅/房龄/装修/楼层/近地铁']
+  est_unit_price decimal(10,2) [not null, note: '估算单价 元/㎡']
+  est_total_price decimal(10,2) [not null, note: '估算总价 万元']
+  price_low decimal(10,2) [note: '区间下限（±8%）']
+  price_high decimal(10,2) [note: '区间上限（±8%）']
+  sample_count int [not null, note: '参与加权的相似房源数']
+  fallback_level enum('community','street','district','none') [not null, note: '降级层级：同小区→同街道→同区→无样本']
+  confidence enum('high','medium','low') [not null, note: '置信度；样本<5 强制 low']
+  model_version varchar(32) [not null, note: '算法版本：相似房源加权均价']
+  created_at datetime [not null, note: '创建时间']
+  updated_at datetime [not null, note: '更新时间']
+  indexes { (created_at) [name: 'idx_valuation_time'] }
+}
+
+// ---------------- 关系 ----------------
+Ref: street.district_id > district.id
+Ref: community.district_id > district.id
+Ref: community.street_id > street.id
+Ref: house.district_id > district.id
+Ref: house.street_id > street.id
+Ref: house.community_id > community.id
+Ref: house.batch_id > import_batch.id
+Ref: data_quality_issue.batch_id > import_batch.id
+Ref: house_orientation.house_id > house.id
+Ref: app_user.role_id > role.id
+Ref: favorite.user_id > app_user.id
+Ref: favorite.house_id > house.id
+Ref: operation_log.user_id > app_user.id
+Ref: valuation_record.user_id > app_user.id
