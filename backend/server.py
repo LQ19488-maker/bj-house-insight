@@ -1,4 +1,4 @@
-﻿"""服务入口：装配路由表 + 中间件 + 静态托管，启动 ThreadingHTTPServer。
+"""服务入口：装配路由表 + 中间件 + 静态托管，启动 ThreadingHTTPServer。
 
 启动：
     python backend/server.py                # 默认 127.0.0.1:8080
@@ -74,6 +74,8 @@ def build_router() -> Router:
     r.add("GET", f"{API}/analytics/premium", h_analytics.premium, name="analytics.premium")
     r.add("GET", f"{API}/analytics/floor-orientation", h_analytics.floor_orientation,
           name="analytics.floor_orientation")
+    r.add("GET", f"{API}/analytics/layout-distribution", h_analytics.layout_distribution,
+          name="analytics.layout_distribution")
     r.add("GET", f"{API}/analytics/value-anomaly", h_house.anomaly,
           name="analytics.value_anomaly")
 

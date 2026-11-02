@@ -39,3 +39,8 @@ def floor_orientation(ctx):
     if metric not in ("floor", "orientation", "both"):
         raise ApiError(1001, "metric 只支持 floor / orientation / both")
     return analytics_service.floor_orientation(metric)
+
+
+def layout_distribution(ctx):
+    top = ctx.qi("top", 8, lo=1, hi=25) or 8
+    return analytics_service.layout_distribution(top)

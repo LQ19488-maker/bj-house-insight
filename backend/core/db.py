@@ -1,4 +1,4 @@
-﻿"""数据库连接与初始化。
+"""数据库连接与初始化。
 
 三个必须记住的 SQLite 细节（都写进 ADR §2 的让步代价里）：
   1. `PRAGMA foreign_keys = ON` —— SQLite 默认**不校验外键**，不显式打开等于没建约束
@@ -55,12 +55,38 @@ def transaction(db_path: Path):
 
 
 def health(db_path: Path) -> dict:
-    """给 /health 用：返回库是否可读与房源行数。"""
+    """给 /health 用：返回库状态、房源规模与两个均价口径。
+
+    把均价口径放进 /health，是为了让首页 KPI 只有一个来源——
+    否则前端会拿区级汇总再算一遍，口径必然分叉。
+    """
     try:
         with session(db_path) as con:
-            rows = con.execute("SELECT COUNT(*) FROM house").fetchone()[0]
+            row = con.execute(
+                "SELECT COUNT(*) AS n, AVG(unit_price) AS avg_u, "
+                "       SUM(total_price * 10000.0) / SUM(area) AS weighted_u "
+                "  FROM house WHERE is_deleted = 0"
+            ).fetchone()
             districts = con.execute("SELECT COUNT(*) FROM district").fetchone()[0]
-        return {"db": "up", "house_rows": int(rows), "districts": int(districts)}
+            communities = con.execute("SELECT COUNT(*) FROM community").fetchone()[0]
+            n = int(row["n"])
+            mid = con.execute(
+                "SELECT total_price FROM house WHERE is_deleted = 0 "
+                " ORDER BY total_price LIMIT 2 OFFSET ?", (max(0, (n - 1) // 2),)
+            ).fetchall()
+        median_total = None
+        if mid:
+            vals = [float(r[0]) for r in mid]
+            median_total = round(vals[0] if len(vals) == 1 else (vals[0] + vals[1]) / 2, 2)
+        return {
+            "db": "up",
+            "house_rows": n,
+            "districts": int(districts),
+            "communities": int(communities),
+            "avg_unit_price": round(float(row["avg_u"] or 0), 2),
+            "weighted_unit_price": round(float(row["weighted_u"] or 0), 2),
+            "median_total_price": median_total,
+        }
     except Exception as exc:  # pragma: no cover - 仅在库损坏时触发
         return {"db": "down", "error": str(exc)}
 

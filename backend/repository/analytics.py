@@ -317,6 +317,19 @@ def floor_orientation(con: sqlite3.Connection) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 户型构成（Q8：户型结构偏好）
+# ---------------------------------------------------------------------------
+def layout_distribution(con: sqlite3.Connection, top: int) -> list[sqlite3.Row]:
+    return con.execute(
+        "SELECT h.room || '室' || h.hall || '厅' AS layout, COUNT(*) AS n, "
+        "       AVG(h.unit_price) AS avg_unit_price, "
+        "       MIN(h.unit_price) AS min_unit_price, MAX(h.unit_price) AS max_unit_price "
+        "  FROM house h WHERE h.is_deleted = 0 "
+        " GROUP BY h.room, h.hall ORDER BY n DESC LIMIT ?", (int(top),)
+    ).fetchall()
+
+
+# ---------------------------------------------------------------------------
 # 小区画像与排行
 # ---------------------------------------------------------------------------
 def community_houses(con: sqlite3.Connection, community_id: int, limit: int = 50) -> list[sqlite3.Row]:
@@ -369,7 +382,20 @@ def rankings(con: sqlite3.Connection, scope: str, by: str, order: str,
     ).fetchall()
 
 
-def excluded_counts(con: sqlite3.Connection, min_count: int) -> dict:
+def excluded_counts(con: sqlite3.Connection, min_count: int, scope: str = "community") -> dict:
+    """统计被 min_count / 伪街道过滤掉的条目数。
+
+    必须按 scope 分别统计：查街道排行时汇报"被排除的小区数"是错的
+    （这一点是被双模式一致性检查抓出来的）。
+    """
+    if scope == "street":
+        return {
+            "excluded_by_min_count": int(con.execute(
+                "SELECT COUNT(*) FROM street WHERE house_count < ?", (int(min_count),)
+            ).fetchone()[0]),
+            "excluded_pseudo": int(con.execute(
+                "SELECT COUNT(*) FROM street WHERE is_pseudo = 1").fetchone()[0]),
+        }
     return {
         "excluded_by_min_count": int(con.execute(
             "SELECT COUNT(*) FROM community WHERE house_count < ?", (int(min_count),)

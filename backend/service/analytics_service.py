@@ -74,6 +74,24 @@ def premium(p: dict) -> dict:
     return views.premium_result(raw, base_group=base)
 
 
+def layout_distribution(top: int) -> dict:
+    cfg = get_cfg()
+    with db.session(cfg.db_path) as con:
+        rows = arepo.layout_distribution(con, top)
+    items = [{
+        "layout": r["layout"],
+        "n": int(r["n"]),
+        "avg_unit_price": round(float(r["avg_unit_price"]), 2),
+        "min_unit_price": round(float(r["min_unit_price"]), 2),
+        "max_unit_price": round(float(r["max_unit_price"]), 2),
+    } for r in rows]
+    return {
+        "list": items,
+        "caliber": ("house.room + hall 组合；厅=0（开间）为合法户型；"
+                    "大室数户型样本极少，n<3 的条目不参与结论"),
+    }
+
+
 def floor_orientation(metric: str) -> dict:
     cfg = get_cfg()
     with db.session(cfg.db_path) as con:

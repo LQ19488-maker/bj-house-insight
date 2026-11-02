@@ -27,6 +27,10 @@ def health() -> dict:
         "version": cfg.version,
         "house_rows": info.get("house_rows"),
         "districts": info.get("districts"),
+        "communities": info.get("communities"),
+        "avg_unit_price": info.get("avg_unit_price"),
+        "weighted_unit_price": info.get("weighted_unit_price"),
+        "median_total_price": info.get("median_total_price"),
         "readonly": cfg.readonly,
     }
 

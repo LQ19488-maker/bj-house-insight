@@ -7,7 +7,7 @@
     2. FR 编号 FR-01…FR-26 连续无缺、无重
     3. 功能点 FP-Mn-xx 编号唯一、总数 40–55、模块 8 个
     4. 模块 MoSCoW：Must ≤ 5
-    5. 接口表 29 行，路径唯一
+    5. 接口表 30 行，路径唯一
     6. 追溯矩阵的"接口 → 模块/功能点"反向表与契约的接口总表**一一对应**
     7. 追溯矩阵覆盖全部 26 条 FR
     8. 契约中出现的每个 `表.字段` 在 schema_model.py 中真实存在（防笔误）
@@ -74,14 +74,14 @@ def main() -> int:
     # ---------- 5. 接口表 ----------
     rows = re.findall(r"^\| (\d+) \| (GET|POST|DELETE) \| `([^`]+)` \|", contract, re.M)
     endpoints = [f"{m} {p}" for _, m, p in rows]
-    check("契约接口表 29 行", len(rows) == 29, f"实测 {len(rows)} 行")
+    check("契约接口表 30 行", len(rows) == 30, f"实测 {len(rows)} 行")
     check("接口（方法+路径）唯一", len(endpoints) == len(set(endpoints)),
           f"重复：{sorted(p for p in endpoints if endpoints.count(p) > 1)}")
 
     # ---------- 6. 追溯矩阵反向表与契约一一对应 ----------
     trace_rows = re.findall(r"^\| \d+ \| `([^`]+)` \| (M\d[^|]*) \| ([^|]+) \|", trace, re.M)
     trace_endpoints = [p.strip() for p, _, _ in trace_rows]
-    check("追溯矩阵反向表 29 行", len(trace_rows) == 29, f"实测 {len(trace_rows)} 行")
+    check("追溯矩阵反向表 30 行", len(trace_rows) == 30, f"实测 {len(trace_rows)} 行")
     missing_in_trace = sorted(set(endpoints) - set(trace_endpoints))
     extra_in_trace = sorted(set(trace_endpoints) - set(endpoints))
     check("契约接口全部进了追溯矩阵", not missing_in_trace, f"缺：{missing_in_trace}")

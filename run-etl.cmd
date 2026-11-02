@@ -24,10 +24,25 @@ if /i "%~1"=="--db" goto :db
 if /i "%~1"=="--docs" goto :docs
 if /i "%~1"=="--mermaid" goto :mermaid
 if /i "%~1"=="--api" goto :api
+if /i "%~1"=="--static" goto :static
+if /i "%~1"=="--web" goto :web
 if /i "%~1"=="--all" goto :all
 
 "%PY%" -m etl.run %*
 exit /b %errorlevel%
+
+:static
+echo [1/3] export static JSON for GitHub Pages...
+"%PY%" tools\export_static.py || exit /b 1
+echo [2/3] build frontend (static data mode)...
+set "VITE_DATA_SOURCE=static"
+cd frontend
+call npm.cmd run build || (cd .. & exit /b 1)
+cd ..
+echo [3/3] backend smoke test (30 endpoints)...
+"%PY%" tools\check_layers.py || exit /b 1
+"%PY%" tools\smoke.py || exit /b 1
+exit /b 0
 
 :mermaid
 echo [1/2] mermaid syntax self-check...
@@ -39,10 +54,23 @@ exit /b 0
 :api
 echo [1/3] layered architecture static check...
 "%PY%" tools\check_layers.py || exit /b 1
-echo [2/3] full API smoke test (108 checks)...
+echo [2/3] full API smoke test (116 checks)...
 "%PY%" tools\smoke.py || exit /b 1
 echo [3/3] benchmark...
 "%PY%" tools\bench.py --n 50 || exit /b 1
+exit /b 0
+
+:web
+echo [1/3] export static JSON for GitHub Pages...
+"%PY%" tools\export_static.py || exit /b 1
+echo [2/3] dual-mode parity check (static vs api)...
+"%PY%" tools\check_parity.py || exit /b 1
+echo [3/3] build frontend (static data mode)...
+set "VITE_DATA_SOURCE=static"
+cd frontend
+call npm.cmd run build || (cd .. & exit /b 1)
+cd ..
+echo OK - dist is ready at frontend/dist
 exit /b 0
 
 :all
@@ -58,9 +86,13 @@ echo ============ 4/5 documents ============
 "%PY%" tools\check_docs.py || exit /b 1
 "%PY%" tools\check_mermaid.py || exit /b 1
 "%PY%" prototype\verify_prototype.py || exit /b 1
-echo ============ 5/5 backend ============
+echo ============ 5/7 backend ============
 "%PY%" tools\check_layers.py || exit /b 1
 "%PY%" tools\smoke.py || exit /b 1
+echo ============ 6/7 dual-mode parity ============
+"%PY%" tools\check_parity.py || exit /b 1
+echo ============ 7/7 benchmark ============
+"%PY%" tools\bench.py --n 30 || exit /b 1
 echo ALL CHECKS PASSED
 exit /b 0
 

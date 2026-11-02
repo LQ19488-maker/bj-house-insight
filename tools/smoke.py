@@ -1,4 +1,4 @@
-"""全接口冒烟测试：在进程内启动服务，逐个真实调用 29 个接口。
+"""全接口冒烟测试：在进程内启动服务，逐个真实调用 30 个接口。
 
     python tools/smoke.py
 
@@ -80,6 +80,16 @@ def call(method: str, path: str, *, token: str | None = None,
             return exc.code, json.loads(payload)
         except json.JSONDecodeError:
             return exc.code, {"raw": payload}
+
+
+def call_raw(method: str, path: str) -> tuple[int, str, bytes]:
+    """不解析 JSON 的调用，用于验证静态托管（返回 HTML 而非 JSON）。"""
+    req = urllib.request.Request(API + path, method=method)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return resp.status, resp.headers.get("Content-Type", ""), resp.read()
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.headers.get("Content-Type", ""), exc.read()
 
 
 # ---------------------------------------------------------------------------
@@ -262,6 +272,19 @@ def main() -> int:
               b["data"]["orientation_spread"]["south_minus_north_pct"] > 0,
               str(b["data"]["orientation_spread"]))
 
+        st, b = call("GET", "/api/v1/analytics/layout-distribution?top=8")
+        code_is("GET /analytics/layout-distribution", st, b, 200, 0)
+        layouts = b["data"]["list"]
+        check("户型构成返回 8 条", len(layouts) == 8, str(len(layouts)))
+        check("户型构成按套数降序", all(
+            layouts[i]["n"] >= layouts[i + 1]["n"] for i in range(len(layouts) - 1)))
+        check("户型字段形如 N室M厅",
+              all("室" in x["layout"] and "厅" in x["layout"] for x in layouts),
+              str([x["layout"] for x in layouts[:3]]))
+        check("户型 Top8 套数之和 ≤ 总数且 > 0",
+              0 < sum(x["n"] for x in layouts) <= 2890,
+              str(sum(x["n"] for x in layouts)))
+
         st, b = call("GET", "/api/v1/analytics/value-anomaly?district_id=11&area_band=60-90")
         code_is("GET /analytics/value-anomaly", st, b, 200, 0)
         check("异常房源按同区同面积段判定", b["data"]["group"]["n"] > 0,
@@ -394,14 +417,32 @@ def main() -> int:
                   not rep.get("assertions", {}).get("failed"),
                   str(rep.get("assertions", {}).get("failed")))
 
-        # ---------- 错误路径 ----------
+        # ---------- 错误路径与静态托管 ----------
         st, b = call("GET", "/api/v1/nope")
         code_is("不存在的接口 → 3001", st, b, 404, 3001)
 
-        st, b = call("GET", "/some-frontend-route")
-        code_is("静态未构建 → 404 且给提示", st, b, 404, 3001)
-        check("静态提示包含构建说明", "npm run build" in (b.get("message") or ""),
-              b.get("message", "")[:80])
+        dist_index = ROOT / "frontend" / "dist" / "index.html"
+        if dist_index.exists():
+            # 已构建：验证后端同时托管 SPA（替代 Nginx try_files）
+            st, ctype, body = call_raw("GET", "/")
+            check("GET / 返回 SPA 首页", st == 200 and "text/html" in ctype, f"{st} {ctype}")
+            check("首页含 app 挂载点", b'id="app"' in body, body[:60].decode("utf-8", "replace"))
+
+            st, ctype, body = call_raw("GET", "/analytics")
+            check("刷新 /analytics 不 404（SPA 回退）",
+                  st == 200 and "text/html" in ctype, f"{st} {ctype}")
+
+            st, ctype, _ = call_raw("GET", "/data/houses.json")
+            check("静态数据可被访问（静态模式依赖）",
+                  st == 200 and "json" in ctype, f"{st} {ctype}")
+
+            st, _, _ = call_raw("GET", "/api/v1/health")
+            check("API 与静态资源共存（同源单端口）", st == 200, str(st))
+        else:
+            st, b = call("GET", "/some-frontend-route")
+            code_is("静态未构建 → 404 且给提示", st, b, 404, 3001)
+            check("静态提示包含构建说明", "npm run build" in (b.get("message") or ""),
+                  b.get("message", "")[:80])
 
     finally:
         httpd.shutdown()

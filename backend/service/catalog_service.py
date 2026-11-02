@@ -85,7 +85,7 @@ def rankings(scope: str, by: str, order: str, min_count: int,
     cfg = get_cfg()
     with db.session(cfg.db_path) as con:
         rows = arepo.rankings(con, scope, by, order, min_count, include_pseudo, limit)
-        excluded = arepo.excluded_counts(con, min_count)
+        excluded = arepo.excluded_counts(con, min_count, scope)
     return {
         "scope": scope,
         "list": [views.ranking_item(r) for r in rows],

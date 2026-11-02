@@ -1,9 +1,13 @@
 name: Deploy to GitHub Pages
 
-# 当前阶段：先把 8 屏静态原型发上去，验证整条 Pages 链路可用。
-# 批 5 完成 Vue 前端后，把 "Prepare site" 这一步换成：
-#     npm ci && npm run build && cp -r frontend/dist _site
-# 并把 base 设为 /bj-house-insight/ 即可，其余步骤不用改。
+# 构建 Vue 前端（静态数据模式）并发布到 GitHub Pages。
+#
+# 关键点：
+#   1. VITE_BASE 必须是 /<仓库名>/，否则打开是白屏（资源全 404）
+#   2. VITE_DATA_SOURCE=static → 前端读 public/data/*.json 并在浏览器里计算，
+#      不需要后端进程（GitHub Pages 跑不了 Python）
+#   3. public/data/*.json 由 tools/export_static.py 生成并已提交到仓库，
+#      因此 CI 不需要 pandas，只跑 npm ci + npm run build
 
 on:
   push:
@@ -26,12 +30,37 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Prepare site
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build (static data mode, base=/${repo})
+        working-directory: frontend
+        env:
+          VITE_DATA_SOURCE: static
+          VITE_BASE: /${{ github.event.repository.name }}/
         run: |
-          mkdir -p _site
-          cp prototype/*.html _site/
-          echo "deployed-at: $(date -u +%Y-%m-%dT%H:%M:%SZ)" > _site/build-info.txt
-          ls -la _site
+          npm run build
+          echo "构建产物（VITE_BASE=${VITE_BASE}）:"
+          ls -la dist
+          du -sh dist
+
+      - name: Sanity check dist
+        working-directory: frontend
+        run: |
+          test -f dist/index.html || (echo "缺少 dist/index.html" && exit 1)
+          test -f dist/data/houses.json || (echo "缺少 dist/data/houses.json" && exit 1)
+          grep -q "/${{ github.event.repository.name }}/assets/" dist/index.html \
+            || (echo "base 路径未注入正确" && head -20 dist/index.html && exit 1)
+          echo "dist 自检通过"
+          echo "deployed-at: $(date -u +%Y-%m-%dT%H:%M:%SZ)" > dist/build-info.txt
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -39,7 +68,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: frontend/dist
 
   deploy:
     needs: build
