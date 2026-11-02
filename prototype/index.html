@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>北京二手房行情洞察系统 · 原型目录</title>
+<style>
+  :root{--primary:#1A4D8F;--accent:#0F766E;--bg:#F7F9FC;--text:#1F2937;--muted:#6B7280;--line:#E3E8EF}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);
+       color:var(--text);font-size:14px;line-height:1.7;padding:0 20px 60px}
+  .wrap{max-width:980px;margin:0 auto}
+  header{background:var(--primary);color:#fff;margin:0 -20px 32px;padding:32px 20px}
+  header .inner{max-width:980px;margin:0 auto}
+  h1{font-size:24px;margin-bottom:6px}
+  header p{opacity:.85;font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  a.card{display:block;background:#fff;border:1px solid var(--line);border-radius:10px;padding:18px;
+         text-decoration:none;color:inherit;transition:.15s}
+  a.card:hover{border-color:var(--primary);transform:translateY(-2px);
+               box-shadow:0 6px 18px rgba(26,77,143,.1)}
+  .card .n{font-size:12px;color:var(--muted);letter-spacing:1px}
+  .card .t{font-size:16px;font-weight:600;margin:4px 0 6px}
+  .card .d{font-size:12px;color:var(--muted)}
+  .note{background:#fff;border-left:3px solid var(--accent);border-radius:0 8px 8px 0;
+        padding:14px 16px;margin-bottom:24px;font-size:13px;color:#374151}
+  .note b{color:var(--primary)}
+  footer{margin-top:36px;font-size:12px;color:var(--muted);text-align:center}
+  code{background:#EEF3FA;padding:1px 6px;border-radius:4px;font-size:12px;color:var(--primary)}
+</style>
+</head>
+<body>
+<header><div class="inner">
+  <h1>北京二手房行情洞察系统</h1>
+  <p>BJ-House Insight · 2890 条挂牌数据（2024-08 快照）· 8 屏交互原型</p>
+</div></header>
+
+<div class="wrap">
+  <div class="note">
+    这是<b>静态原型目录</b>：8 个页面都是单文件 HTML，离线可用，图表为内联 SVG，
+    数字全部来自真实清洗结果。<br>
+    后续接入 Vue 3 + Element Plus + ECharts 后，本目录会被正式站点替换。
+  </div>
+
+  <div class="grid">
+    <a class="card" href="p1-overview.html">
+      <div class="n">P1</div><div class="t">市场概览</div>
+      <div class="d">4 个核心 KPI、区均价对比、总价分布、热门小区</div></a>
+    <a class="card" href="p2-search.html">
+      <div class="n">P2</div><div class="t">房源检索</div>
+      <div class="d">11 类筛选条件（标注数据库字段）、排序、分页</div></a>
+    <a class="card" href="p3-detail.html">
+      <div class="n">P3</div><div class="t">房源详情</div>
+      <div class="d">属性表、单价分位标尺、相似房源三级降级</div></a>
+    <a class="card" href="p4-compare.html">
+      <div class="n">P4</div><div class="t">房源对比</div>
+      <div class="d">最多 4 套属性矩阵、差异高亮、五维雷达</div></a>
+    <a class="card" href="p5-analytics.html">
+      <div class="n">P5</div><div class="t">市场分析看板</div>
+      <div class="d">6 张图，含「分区房龄-单价」等同区控制对照</div></a>
+    <a class="card" href="p6-community.html">
+      <div class="n">P6</div><div class="t">小区画像</div>
+      <div class="d">聚合指标、同街道分位点图、街道排行</div></a>
+    <a class="card" href="p7-valuation.html">
+      <div class="n">P7</div><div class="t">估价参考</div>
+      <div class="d">相似房源加权均价、降级链、置信度与免责</div></a>
+    <a class="card" href="p8-admin.html">
+      <div class="n">P8</div><div class="t">数据管理</div>
+      <div class="d">导入批次、质量报告抽屉、规则触发统计</div></a>
+  </div>
+
+  <footer>
+    原型数据源：<code>data/cleaned_house.csv</code>（2890 行）·
+    单价口径：算术均值 64,765 元/㎡，面积加权 64,028 元/㎡
+  </footer>
+</div>
+</body>
+</html>

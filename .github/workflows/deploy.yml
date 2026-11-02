@@ -1,0 +1,53 @@
+name: Deploy to GitHub Pages
+
+# 当前阶段：先把 8 屏静态原型发上去，验证整条 Pages 链路可用。
+# 批 5 完成 Vue 前端后，把 "Prepare site" 这一步换成：
+#     npm ci && npm run build && cp -r frontend/dist _site
+# 并把 base 设为 /bj-house-insight/ 即可，其余步骤不用改。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+          cp prototype/*.html _site/
+          echo "deployed-at: $(date -u +%Y-%m-%dT%H:%M:%SZ)" > _site/build-info.txt
+          ls -la _site
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
