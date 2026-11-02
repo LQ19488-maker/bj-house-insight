@@ -61,11 +61,13 @@ echo [3/3] benchmark...
 exit /b 0
 
 :web
-echo [1/3] export static JSON for GitHub Pages...
+echo [1/4] export static JSON for GitHub Pages...
 "%PY%" tools\export_static.py || exit /b 1
-echo [2/3] dual-mode parity check (static vs api)...
+echo [2/4] dual-mode parity check (static vs api)...
 "%PY%" tools\check_parity.py || exit /b 1
-echo [3/3] build frontend (static data mode)...
+echo [3/4] dead-link check (frontend routes)...
+"%PY%" tools\check_links.py || exit /b 1
+echo [4/4] build frontend (static data mode)...
 set "VITE_DATA_SOURCE=static"
 cd frontend
 call npm.cmd run build || (cd .. & exit /b 1)
@@ -89,9 +91,11 @@ echo ============ 4/5 documents ============
 echo ============ 5/7 backend ============
 "%PY%" tools\check_layers.py || exit /b 1
 "%PY%" tools\smoke.py || exit /b 1
-echo ============ 6/7 dual-mode parity ============
+echo ============ 6/8 dual-mode parity ============
 "%PY%" tools\check_parity.py || exit /b 1
-echo ============ 7/7 benchmark ============
+echo ============ 7/8 dead-link check ============
+"%PY%" tools\check_links.py || exit /b 1
+echo ============ 8/8 benchmark ============
 "%PY%" tools\bench.py --n 30 || exit /b 1
 echo ALL CHECKS PASSED
 exit /b 0

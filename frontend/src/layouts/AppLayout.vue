@@ -64,20 +64,21 @@ const NAV = [
 
 const topNav = NAV
 
+/**
+ * 侧栏只放"一定会有内容"的入口。
+ * 详情页与小区画像需要具体 id，硬编码 /houses/1 之类会显得莫名其妙，
+ * 因此改为从真实数据进入：概览页的小区卡片 → 小区画像；检索/概览的结果行 → 房源详情。
+ */
 const sideGroups = computed(() => {
   const groups = {}
   NAV.forEach((item) => {
     if (!groups[item.group]) groups[item.group] = []
     groups[item.group].push(item)
   })
-  // 详情页与小区页不在主导航里，但侧栏补入口方便回跳
-  groups['找房'].push({ path: '/houses/1', title: '房源详情' })
-  groups['辅助'] = [...(groups['辅助'] || []), { path: '/communities/1', title: '小区画像' }]
   return Object.entries(groups).map(([name, items]) => ({ name, items }))
 })
 
 function isActive(item) {
-  if (item.path === '/') return route.path === '/'
   if (item.path.startsWith('/houses/')) return route.path.startsWith('/houses/')
   if (item.path.startsWith('/communities/')) return route.path.startsWith('/communities/')
   return route.path === item.path
