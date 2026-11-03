@@ -1,7 +1,10 @@
 <template>
   <div class="layout">
     <header class="topbar">
-      <div class="brand">BJ-House Insight</div>
+      <div class="brand">
+        <span class="brand-badge">LTQ</span>
+        <span class="brand-name">北京二手房行情洞察系统</span>
+      </div>
       <nav class="nav">
         <RouterLink
           v-for="item in topNav"
@@ -39,9 +42,15 @@
     </div>
 
     <footer class="foot">
-      数据源：2890 条挂牌房源（2024-08 快照）｜
-      单价口径：算术均值 64,765 元/㎡，面积加权 64,028 元/㎡｜
-      极值只标记不删除（72 行）
+      <div class="foot-credit">
+        <span class="foot-badge">LTQ</span>
+        北京二手房行情洞察系统 · 数据处理与可视化 II 课程作业 · 2026.11
+      </div>
+      <div class="foot-meta">
+        数据源：2890 条挂牌房源（2024-08 快照）｜
+        单价口径：算术均值 64,765 元/㎡，面积加权 64,028 元/㎡｜
+        极值只标记不删除（72 行）
+      </div>
     </footer>
   </div>
 </template>
@@ -100,7 +109,26 @@ function isActive(item) {
   top: 0;
   z-index: 20;
 }
-.brand { font-weight: 700; letter-spacing: .5px; white-space: nowrap; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  white-space: nowrap;
+}
+/* 署名徽章：琥珀色底 + 深蓝字，在深蓝顶栏上非常醒目 */
+.brand-badge {
+  background: #fbbf24;
+  color: #1a4d8f;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .25);
+}
+.brand-name { font-size: 15px; }
 .nav { display: flex; gap: 2px; flex-wrap: wrap; }
 .nav-link {
   padding: 6px 12px;
@@ -162,6 +190,26 @@ function isActive(item) {
   text-align: center;
   border-top: 1px solid var(--c-line);
 }
+.foot-credit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--c-text);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.foot-badge {
+  background: var(--c-primary);
+  color: #fff;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  padding: 1px 7px;
+  border-radius: 3px;
+}
+.foot-meta { font-size: 11px; color: var(--c-muted); }
 
 @media (max-width: 1024px) {
   .side { display: none; }

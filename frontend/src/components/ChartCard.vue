@@ -29,7 +29,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { useChart } from '@/composables/useChart'
 
 const props = defineProps({
@@ -48,10 +48,15 @@ const props = defineProps({
 const el = ref(null)
 const { setOption, exportPng: exportRaw } = useChart(el)
 
-function apply() {
-  if (props.option && !props.loading && !props.error && !props.empty) {
-    setOption(props.option)
-  }
+/**
+ * 数据到位后再画图。
+ * 必须 await nextTick()：容器 div 是 v-else 分支，只有 loading 变 false 之后
+ * 才会被渲染出来，等一个 tick 才能拿到真实 DOM 并初始化 ECharts。
+ */
+async function apply() {
+  if (!props.option || props.loading || props.error || props.empty) return
+  await nextTick()
+  setOption(props.option)
 }
 
 onMounted(apply)
@@ -94,7 +99,13 @@ h3 { font-size: 14px; margin: 0 0 2px; }
   cursor: pointer;
 }
 .export-btn:hover { color: var(--c-primary); border-color: var(--c-primary); }
-.body { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+/**
+ * 注意：这里**不能**写 flex: 1。
+ * 外层 .chart-card 高度是自适应的，flex:1 会让 .body 的可用空间算成 0，
+ * 结果 ECharts 初始化时量到的容器高度是 0，画出来的 SVG 高度也是 0（图表空白）。
+ * 高度一律由模板上的 :style="{ height: height + 'px' }" 决定。
+ */
+.body { display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .body :deep(.el-skeleton) { width: 100%; align-self: flex-start; }
 .canvas { width: 100%; height: 100%; }
 .foot {

@@ -160,9 +160,14 @@ const funnelText = computed(() => {
   return `${f.raw_rows ?? f.raw} = ${f.loaded_rows ?? f.loaded} + ${f.rejected_rows ?? f.rejected}`
 })
 const outlierRows = computed(() => {
+  // 优先取断言里"并集"那一条（72），而不是各指标标记数的平均值（30）
+  const asserts = report.value?.assertions || []
+  const hit = asserts.find((a) => String(a.name || '').includes('并集'))
+  if (hit) return hit.actual
   const per = report.value?.outlier_summary
-  if (!per) return report.value?.filters?.outlier_rows ?? '72'
-  return Object.values(per).reduce((a, v) => a + (v.flagged_rows || 0), 0) / Object.keys(per).length | 0
+  if (!per) return '—'
+  // 三个指标的阈值不同，行会重叠，这里给的是"各指标标记数合计"的上界
+  return Object.values(per).reduce((a, v) => a + (v.flagged_rows || 0), 0)
 })
 const pseudoText = computed(() => {
   const p = report.value?.pseudo_streets

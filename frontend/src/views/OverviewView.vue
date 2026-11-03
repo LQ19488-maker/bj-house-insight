@@ -4,7 +4,12 @@
       title="市场概览"
       sub="2024-08 挂牌快照 · 2890 条"
       caliber="口径：均价为算术均值；中位数为线性插值中位数；极值行只标记不删除"
-    />
+    >
+      <div class="credit">
+        <span class="credit-badge">LTQ</span>
+        <span>本系统由 LTQ 独立完成 · 数据处理与可视化 II 课程作业 · 2026.11</span>
+      </div>
+    </PageHeader>
 
     <div class="grid g4">
       <StatCard
@@ -155,4 +160,28 @@ onMounted(load)
   padding: 12px;
 }
 .comm-name { font-weight: 600; }
+
+/* 署名条：浅蓝底 + 左侧竖线，位置在标题下方，醒目但不抢内容 */
+.credit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 16px;
+  padding: 8px 12px;
+  background: var(--c-primary-soft);
+  border-left: 3px solid var(--c-primary);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  color: var(--c-primary);
+  font-weight: 600;
+}
+.credit-badge {
+  background: var(--c-primary);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
 </style>

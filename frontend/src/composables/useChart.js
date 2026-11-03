@@ -59,14 +59,28 @@ export function useChart(containerRef) {
     chart.value?.resize()
   }
 
-  onMounted(() => {
-    if (!containerRef.value) return
-    chart.value = echarts.init(containerRef.value, null, { renderer: 'svg' })
-    if (typeof ResizeObserver !== 'undefined') {
-      observer = new ResizeObserver(() => resize())
-      observer.observe(containerRef.value)
+  /**
+   * 惰性初始化。
+   *
+   * 关键：图表容器可能**在组件挂载之后才出现**（例如数据还没到时先显示骨架屏，
+   * 用 v-if / v-else 把容器藏起来了）。此时 onMounted 里拿不到 DOM，
+   * 如果只在挂载时 init 一次，图表就会永远是空白。
+   * 所以 setOption 前都先 ensure() 一次，DOM 一出现就补上初始化。
+   */
+  function ensure() {
+    const el = containerRef.value
+    if (!el) return null
+    if (!chart.value) {
+      chart.value = echarts.init(el, null, { renderer: 'svg' })
+      if (typeof ResizeObserver !== 'undefined' && !observer) {
+        observer = new ResizeObserver(() => resize())
+        observer.observe(el)
+      }
     }
-  })
+    return chart.value
+  }
+
+  onMounted(ensure)
 
   onBeforeUnmount(() => {
     observer?.disconnect()
@@ -76,8 +90,12 @@ export function useChart(containerRef) {
   })
 
   function setOption(option, opts = { notMerge: true }) {
-    if (!chart.value || !option) return
-    chart.value.setOption(option, opts)
+    const c = ensure()
+    if (!c || !option) return false
+    c.setOption(option, opts)
+    // 容器刚显示出来时宽高可能还是 0，重新量一次，否则画布尺寸为 0
+    c.resize()
+    return true
   }
 
   function exportPng(name = 'chart') {

@@ -63,8 +63,8 @@ const router = createRouter({
 
 router.afterEach((to) => {
   document.title = to.meta?.title
-    ? `${to.meta.title} · 北京二手房行情洞察系统`
-    : '北京二手房行情洞察系统'
+    ? `${to.meta.title} · LTQ 的北京二手房行情洞察系统`
+    : 'LTQ 的北京二手房行情洞察系统'
 })
 
 export default router
